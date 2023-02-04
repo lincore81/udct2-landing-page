@@ -1,5 +1,7 @@
 # Project 2: Landing Page
 
+↪ [Live version](https://lincore81.github.io/udct2-landing-page)
+
 ## About
 This is something akin to a landing page, for pure training purposes. It
 features a dynamic nav bar, amazing!  It also does the smooth scrolling thing,
