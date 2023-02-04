@@ -17,34 +17,35 @@ There are no hard dependencies. I only used a few dev tools for linting, i. e:
 - [eslint](https://eslint.org): So I can better follow your rules :)
 - [tsc](https://typescriptlang.org): Type checking, yay!
 
-## Project Goals
+
+## Requirements
 
 ### Mandatory
  - [x] Create a dynamic navigation from all `main > section`s on the page.
  - [x] Highlight the section/nav item corresponding to the section that is currently viewed.
  - [x] When the user clicks on a nav item, smoothly scroll to the appropriate section
- - [ ] A proper `README.md`
- - [ ] Comments at the beginning of each class and function
+ - [x] A proper `README.md`
+ - [x] Comments at the beginning of each class and function
  - [x] Consistent code style, high readability
 
 ### Optional
- - [ ] Hide nav bar when not scrolling (after delay)
+ - [x] Hide nav bar when not scrolling (after delay)
  - [ ] Add `scroll to top` when viewport is below page fold
- - [ ] Change the design/content
+ - [x] Change the design/content
  - [ ] Make sections collapsible
 
 ### Rubric (where different 🤔)
  - [x] project structure (`/js/app.js /css/styles.css /index.html /README.md`)
- - [ ] responsive, works on all devices
- - [ ] styling for active states 
- - [ ] at least 4 sections
- - [ ] nice README:
+ - [x] responsive, works on all devices
+ - [x] styling for active states 
+ - [x] at least 4 sections
+ - [x] nice README:
    - [x] project description
    - [x] usage
    - [x] dependencies
    - [x] proper gfm syntax
- - [ ] comments at the beginning of *every* function, hooray!
- - [ ] readable code (are you insisting that I use 
+ - [x] comments at the beginning of *every* function, hooray!
+ - [x] readable code (are you insisting that I use 
        [this style guide](http://udacity.github.io/frontend-nanodegree-styleguide/javascript.html#formatting)?)
 
 ## Problem Solving
@@ -55,7 +56,7 @@ There are no hard dependencies. I only used a few dev tools for linting, i. e:
 3. Append the elements as children to `nav > ul`.
 
 ### How to find the currently viewed section?
-The definition of `currently viewed` is: The element that begins closest to the
+The definition of 'currently viewed' is: The element that begins closest to the
 top of the viewport, but not above it (at least in theory).
 
 1. Map all section elements to a `[Element, number]`, where the number is the
@@ -63,6 +64,8 @@ top of the viewport, but not above it (at least in theory).
 2. Reduce the array to the pair with the smallest non-negative `number`.
 3. The associated `Element` is probably 'currently viewed'.
 
+**Update:** I ended up choosing the element that occupies the most screen space
+*as 'currently viewed'.
 
 ### How to smoothly scroll to a section?
 `section.scrollIntoView({behavior: 'smooth'})` 👍
