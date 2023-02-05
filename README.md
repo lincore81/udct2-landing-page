@@ -32,7 +32,7 @@ There are no hard dependencies. I only used a few dev tools for linting, i. e:
 
 ### Optional
  - [x] Hide nav bar when not scrolling (after delay)
- - [ ] Add `scroll to top` when viewport is below page fold
+ - [x] Add `scroll to top` when viewport is below page fold
  - [x] Change the design/content
  - [ ] Make sections collapsible
 
