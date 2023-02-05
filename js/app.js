@@ -24,6 +24,13 @@
  */
 
 /**
+ * @template a
+ * @callback Predicate
+ * @param {a} conditional
+ * @returns {boolean}
+ */
+
+/**
  * Define Global Variables
  *
 */
@@ -32,7 +39,7 @@ const SECTION_SELECTOR = `main > section`
     , CSS_HIDDEN_CLASS = `hidden`
     , LABEL_ATTRIB = `data-nav`
     , NAV_LIST_ID = `navbar__list`
-    , HEADER_FADE_TIME = 3000
+    , HEADER_HIDE_DELAY = 3000
     ;
 
 /**
@@ -180,13 +187,13 @@ export const populateNav = () => {
         throw new Error(`No such element: '${NAV_LIST_ID}'`);
     }
     $(navList, {}, navItems);
+    // This doesn't really belong here, but I'm too lazy to refactor again:
     const header = document.querySelector('.page__header');
     if (!header) {
         throw new Error(`No header found.`);
     }
     return {sections, navItems, header};
 };
-
 
 
 // Add class 'active' to section when near top of viewport
@@ -210,7 +217,6 @@ export const updateNavBar = state => {
 };
 
 // Scroll to anchor ID using scrollTO event
-
 /**
  * Curried event listener that scrolls to the given section.
  * @param {Element} section
@@ -221,30 +227,64 @@ export const scrollToSection = section => ev => {
     section.scrollIntoView({behavior: 'smooth'});
 };
 
+
+/**
+ * @typedef {{show: VoidFunction, hide: VoidFunction}} Hideable
+ */
+/**
+ * Setup an element so that it can be hidden and shown via functions.
+ * Moving the mouse over the element or focusing it with the keyboard prevents
+ * hiding. This function just adds/removes a css class.
+ * @param {Element} element
+ * @param {Predicate<Element>} predicate Must return true to allow hiding.
+ * @returns {Hideable}
+ */
+const makeHideable = (element, predicate) => {
+    let mayHideElement = true;
+    const enableHiding = () => mayHideElement = true
+        , disableHiding = () => {
+            element.classList.remove(CSS_HIDDEN_CLASS);
+            mayHideElement = false;
+        };
+    // add event listeners:
+    $(element, {}, [], [
+        ['focus', disableHiding],
+        ['mouseenter', disableHiding],
+        ['blur', enableHiding],
+        ['mouseleave', enableHiding],
+    ]);
+    return {
+        hide: () => mayHideElement && predicate(element) &&
+            element.classList.add(CSS_HIDDEN_CLASS) || undefined,
+        show: () => element.classList.remove(CSS_HIDDEN_CLASS)
+    };
+};
+
+
 // Set sections as active
 /**
  * Entry point:
+ * - populate the nav list
+ * - update the nav list on scroll
+ * - hide the header after a delay when the user scrolled
  */
-(() => {
-    const state = populateNav();
-    state.header.addEventListener('mouseenter', () => {
-        state.header.classList.remove(CSS_HIDDEN_CLASS);
-    });
-    let timerHandle = 0;
-    window.addEventListener(`scroll`,
-        debounce(() => {
-            updateNavBar(state);
-            if (timerHandle) {
-                clearTimeout(timerHandle);
-                state.header.classList.remove(CSS_HIDDEN_CLASS);
-                timerHandle = 0;
-            }
-            timerHandle = setTimeout(
-                () => state.header.classList.add(CSS_HIDDEN_CLASS),
-                HEADER_FADE_TIME);
-        })
-    );
-})();
+{
+    const state = populateNav()
+        , hideable = makeHideable(state.header, () => window.scrollY > 0);
+
+    /** @type {number | undefined} */
+    let timerId = undefined;
+
+    window.addEventListener(`scroll`, debounce(() => {
+        updateNavBar(state);
+        if (timerId) {
+            clearTimeout(timerId);
+            timerId = undefined;
+            hideable.show();
+        }
+        timerId = setTimeout(hideable.hide, HEADER_HIDE_DELAY);
+    }));
+}
 
 
 /**
