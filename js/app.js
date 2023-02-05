@@ -24,6 +24,10 @@
  */
 
 /**
+ * @typedef {[string, EventListener, AddEventListenerOptions?][]} EventListenerDefs
+ */
+
+/**
  * @template a
  * @callback Predicate
  * @param {a} conditional
@@ -77,12 +81,16 @@ export const appendChildren = (element, children) =>
  * Add event listeners to the given `Element`. The function doesn't provide a
  * means to remove event listeners.
  * @param {Element} element
- * @param {[string, EventListener][]} events
+ * @param {EventListenerDefs} events
  * @returns {void}
  */
 export const addEventListeners = (element, events) =>
-    events.forEach(([eventname, listener]) =>
-        element.addEventListener(eventname, listener));
+    events.forEach((kvpair) => {
+        const [eventname, listener] = kvpair;
+        const options = kvpair[2] || {};
+
+        element.addEventListener(eventname, listener, options);
+    });
 
 
 /**
@@ -93,7 +101,7 @@ export const addEventListeners = (element, events) =>
  * @param {string | Element} tag
  * @param {Object.<string, string>} attributes
  * @param {(string | Element)[]} children
- * @param {[string, EventListener][]=} [events]
+ * @param {EventListenerDefs} [events]
  * @returns {Element} The created/modified Element.
  */
 export const $ = (tag, attributes, children, events) => {
@@ -273,9 +281,9 @@ const makeHideable = (element, predicate, cssClass=CSS_HIDDEN_CLASS) => {
         };
     // add event listeners:
     $(element, {}, [], [
-        [`focus`, disableHiding],
+        [`focus`, disableHiding, {capture: true}], // focus doesn't bubble up
         [`mouseenter`, disableHiding],
-        [`blur`, enableHiding],
+        [`blur`, enableHiding, {capture: true}], // blur doesn't bubble up either
         [`mouseleave`, enableHiding],
     ]);
     return {
@@ -303,7 +311,6 @@ const makeHideable = (element, predicate, cssClass=CSS_HIDDEN_CLASS) => {
 
     /** @type {number | undefined} */
     let timerId = undefined;
-
     window.addEventListener(`scroll`, debounce(() => {
         updateNavBar(state);
         if (timerId) {
