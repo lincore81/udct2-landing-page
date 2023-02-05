@@ -36,10 +36,12 @@
 */
 const SECTION_SELECTOR = `main > section`
     , CSS_ACTIVE_CLASS = `active`
-    , CSS_HIDDEN_CLASS = `hidden`
+    , CSS_HIDDEN_CLASS = `hidden` // opacity: 0
+    , CSS_INVISIBLE_CLASS = `invisible` // display: none
     , LABEL_ATTRIB = `data-nav`
     , NAV_LIST_ID = `navbar__list`
     , HEADER_HIDE_DELAY = 3000
+    , MAX_COMPAT_WIDTH = 600 // if innerWidth is <= this, never hide the header
     ;
 
 /**
@@ -118,7 +120,10 @@ export const debounce = (f, intervallMs=100) => {
         if (shouldCall) {
             f(ev);
             shouldCall = false;
-            setTimeout(() => shouldCall = true, intervallMs);
+            setTimeout(() => {
+                shouldCall = true;
+                f(ev);
+            }, intervallMs);
         }
     };
 };
@@ -178,9 +183,9 @@ export const populateNav = () => {
                         class: `menu__link`
                     },
                     /* children:*/
-                    [section.getAttribute(LABEL_ATTRIB) || 'NO LABEL!'],
+                    [section.getAttribute(LABEL_ATTRIB) || `NO LABEL!`],
                     /* events:  */
-                    [['click', scrollToSection(section)]]
+                    [[`click`, scrollToSection(section)]]
                 )
             ]));
     if (!navList) {
@@ -188,7 +193,7 @@ export const populateNav = () => {
     }
     $(navList, {}, navItems);
     // This doesn't really belong here, but I'm too lazy to refactor again:
-    const header = document.querySelector('.page__header');
+    const header = document.querySelector(`.page__header`);
     if (!header) {
         throw new Error(`No header found.`);
     }
@@ -224,9 +229,28 @@ export const updateNavBar = state => {
  */
 export const scrollToSection = section => ev => {
     ev.preventDefault();
-    section.scrollIntoView({behavior: 'smooth'});
+    section.scrollIntoView({behavior: `smooth`});
 };
 
+/**
+ * Create a button that scrolls back to the top and is only displayed when the
+ * user scrolled past 1/2 of the viewport height.
+ */
+const makeScrollToTopButton = () => {
+    const scrollToTopButton = $(`div`, {id: `scrolltotop-wrapper`}, [
+            $(`button`,
+                /* attribs:*/ { id: `scrolltotop`, class: `link-button`},
+                /* label:  */ [`🠕 Scroll to top`],
+                /* events: */ [[`click`, () => scrollTo({top: 0, behavior: `smooth`})]]
+            )
+        ]);
+    document.body.appendChild(scrollToTopButton);
+    const {show, hide} = makeHideable(scrollToTopButton, undefined, CSS_INVISIBLE_CLASS);
+
+    window.addEventListener(`scroll`,
+        debounce(() => scrollY > innerHeight / 2 ? show() : hide(), 200)
+    );
+};
 
 /**
  * @typedef {{show: VoidFunction, hide: VoidFunction}} Hideable
@@ -236,27 +260,29 @@ export const scrollToSection = section => ev => {
  * Moving the mouse over the element or focusing it with the keyboard prevents
  * hiding. This function just adds/removes a css class.
  * @param {Element} element
- * @param {Predicate<Element>} predicate Must return true to allow hiding.
+ * @param {Predicate<Element>=} predicate Must return true to allow hiding.
+ * @param {string=} cssClass
  * @returns {Hideable}
  */
-const makeHideable = (element, predicate) => {
+const makeHideable = (element, predicate, cssClass=CSS_HIDDEN_CLASS) => {
     let mayHideElement = true;
     const enableHiding = () => mayHideElement = true
         , disableHiding = () => {
-            element.classList.remove(CSS_HIDDEN_CLASS);
+            element.classList.remove(cssClass);
             mayHideElement = false;
         };
     // add event listeners:
     $(element, {}, [], [
-        ['focus', disableHiding],
-        ['mouseenter', disableHiding],
-        ['blur', enableHiding],
-        ['mouseleave', enableHiding],
+        [`focus`, disableHiding],
+        [`mouseenter`, disableHiding],
+        [`blur`, enableHiding],
+        [`mouseleave`, enableHiding],
     ]);
     return {
-        hide: () => mayHideElement && predicate(element) &&
-            element.classList.add(CSS_HIDDEN_CLASS) || undefined,
-        show: () => element.classList.remove(CSS_HIDDEN_CLASS)
+        hide: () => mayHideElement
+                && (!predicate || predicate(element))
+                && element.classList.add(cssClass) || undefined,
+        show: () => element.classList.remove(cssClass)
     };
 };
 
@@ -266,11 +292,14 @@ const makeHideable = (element, predicate) => {
  * Entry point:
  * - populate the nav list
  * - update the nav list on scroll
+ * - create the `scroll to top` button
  * - hide the header after a delay when the user scrolled
  */
 {
     const state = populateNav()
-        , hideable = makeHideable(state.header, () => window.scrollY > 0);
+        , hideable = makeHideable(state.header, () =>
+            window.scrollY > 0 && innerWidth > MAX_COMPAT_WIDTH);
+    makeScrollToTopButton();
 
     /** @type {number | undefined} */
     let timerId = undefined;
